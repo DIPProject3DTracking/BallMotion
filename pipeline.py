@@ -6,10 +6,6 @@ class PipelineComponent(ABC):
     def __init__(self):
         pass
 
-    @abstractmethod
-    def __str__(self):
-        pass
-
 
 class Supplier(PipelineComponent):
     def __init__(self):
@@ -29,17 +25,13 @@ class Consumer(PipelineComponent):
         pass
 
 
-class Mapper(Supplier, Consumer):
+class Mapper(PipelineComponent):
     def __init__(self, func):
         super().__init__()
         self.func = func
 
     @abstractmethod
-    def supply(self) -> Any:
-        pass
-
-    @abstractmethod
-    def consume(self, obj: Any) -> None:
+    def map(self, obj: Any) -> Any:
         pass
 
 
@@ -62,6 +54,6 @@ class Pipeline:
             elif isinstance(stage, Consumer):
                 stage.consume(obj)
             elif isinstance(stage, Mapper):
-                obj = stage.func(obj)
+                obj = stage.map(obj)
             else:
                 raise TypeError('Unknown component type')
