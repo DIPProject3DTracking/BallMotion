@@ -30,8 +30,8 @@ class Consumer(PipelineComponent):
 
 
 class Mapper(Supplier, Consumer):
-    def __init__(self, name, func):
-        super().__init__(name)
+    def __init__(self, func):
+        super().__init__()
         self.func = func
 
     @abstractmethod
