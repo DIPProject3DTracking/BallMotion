@@ -1,12 +1,12 @@
 # BallMotion
 
-- Frame capturing 
-- (Color thresholdaing and filtering)
+- Frame capturing (JAN)
+- (Color thresholdaing and filtering) ()
   - cv2::HueCircles
-- shape detection
-- movement interpolation (Kalman??)
+- shape detection (JAN/FRA)
+- movement interpolation (Kalman??) ()
   - ROI selection
-- Triangulation
-- 3D visualization (Unity??)
-- ConfigHandler (Camera & world parameters; color calibration)
-- Parallelization
+- Triangulation (JFF)
+- 3D visualization (Unity??) (FLO)
+- ConfigHandler (Camera & world parameters; color calibration) ()
+- Parallelization ()
