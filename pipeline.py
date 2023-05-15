@@ -21,7 +21,7 @@ class Supplier(PipelineComponent):
 
 
 class Consumer(PipelineComponent):
-    def __init__(self, name):
+    def __init__(self):
         super().__init__()
 
     @abstractmethod
