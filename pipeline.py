@@ -52,3 +52,16 @@ class Pipeline:
 
     def add_component(self, component: PipelineComponent) -> None:
         self.stages.append(component)
+
+    # TODO: Multi-threading
+    def run(self):
+        obj = None
+        for stage in self.stages:
+            if isinstance(stage, Supplier):
+                obj = stage.supply()
+            elif isinstance(stage, Consumer):
+                stage.consume(obj)
+            elif isinstance(stage, Mapper):
+                obj = stage.func(obj)
+            else:
+                raise TypeError('Unknown component type')
