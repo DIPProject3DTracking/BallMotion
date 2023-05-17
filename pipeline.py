@@ -89,7 +89,7 @@ class Pipeline:
             if not isinstance(component.component, Mapper):
                 raise RuntimeError('Middle components should be Mappers')
         for stage in self.__stages:
-            print("Starting stage: " + str(stage))
+            print("Starting stage: " + stage.component.abbreviate())
             stage.run()
 
     def get_endpoint_sizes(self):
