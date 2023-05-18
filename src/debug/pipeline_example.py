@@ -1,7 +1,7 @@
+import time
 from typing import Any
 
-from pipeline import Pipeline, Supplier, Consumer, Mapper
-import time
+from pipeline.pipeline import Consumer, Mapper, Pipeline, Supplier
 
 
 class NameGenerator(Supplier):
@@ -47,12 +47,14 @@ class CountMapper(Mapper):
 
 
 def run():
-    example_pipe = Pipeline.builder() \
-        .add(NameGenerator()) \
-        .add(DelayMapper(0.5)) \
-        .add(CountMapper()) \
-        .add(Printer()) \
+    example_pipe = (
+        Pipeline.builder()
+        .add(NameGenerator())
+        .add(DelayMapper(0.5))
+        .add(CountMapper())
+        .add(Printer())
         .build()
+    )
 
     try:
         example_pipe.run()

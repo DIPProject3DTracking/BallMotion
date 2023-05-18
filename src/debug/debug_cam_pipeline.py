@@ -1,7 +1,8 @@
 import time
 
-from pipeline import Supplier, Consumer, Pipeline
 import cv2
+
+from pipeline.pipeline import Consumer, Pipeline, Supplier
 
 
 class DebugCamSupplier(Supplier):
@@ -24,12 +25,23 @@ class DebugCamImageDisplay(Consumer):
         cv2.waitKey(1)
 
 
-cam = cv2.VideoCapture(0)
-if not cam or not cam.isOpened():
-    print("Cannot open camera")
-    exit()
-pipe = Pipeline.builder().add(DebugCamSupplier(cam)).add(DebugCamImageDisplay("cam1")).build()
-pipe.run()
-while True:
-    time.sleep(1)
-    print(str(pipe))
+def main():
+    cam = cv2.VideoCapture(0)
+
+    if not cam or not cam.isOpened():
+        print("Cannot open camera")
+        exit()
+    pipe = (
+        Pipeline.builder()
+        .add(DebugCamSupplier(cam))
+        .add(DebugCamImageDisplay("cam1"))
+        .build()
+    )
+    pipe.run()
+    while True:
+        time.sleep(1)
+        print(str(pipe))
+
+
+if __name__ == "__main__":
+    main()
