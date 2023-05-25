@@ -45,7 +45,7 @@ class ColorPicker:
             if not ret_succ:
                 break
 
-            self.extract_color(frame)
+            self.extract_color(frame.copy())
 
             frame = self.draw_crosshair(frame)
 
@@ -112,14 +112,16 @@ class ColorPicker:
 
     def extract_color(self, frame):
         # Convert to HSV and perform histogram equalization on the V channel
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        frame[:, :, 2] = cv2.equalizeHist(frame[:, :, 2])
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2LAB)
+        frame[:, :, 0] = cv2.equalizeHist(frame[:, :, 0])
 
         frame = cv2.bitwise_and(self.mask, frame)  # Apply mask
 
         non_black_pixels_mask = np.any(frame > [0, 0, 0], axis=-1)
 
-        h_channel, s_channel, v_channel = frame[non_black_pixels_mask].T
+        h_channel, s_channel, v_channel = frame[np.where(non_black_pixels_mask)].T
+        with open("hsv.txt", "a") as f:
+            f.write(str(h_channel) + str(s_channel) + str(v_channel) + "\n")
 
         # compute median and standard deviation for each channel
         color_median = np.median([h_channel, s_channel, v_channel], axis=1)
@@ -131,7 +133,7 @@ class ColorPicker:
     def print_color(self):
         color = np.mean(self.color_median, axis=0)
         color_bgr = cv2.cvtColor(
-            color.astype(np.uint8).reshape(1, 1, 3), cv2.COLOR_HSV2BGR
+            color.astype(np.uint8).reshape(1, 1, 3), cv2.COLOR_LAB2BGR
         ).squeeze()
         median_str = f"Median (HSV): {color}; (BGR): {color_bgr})"
         std_str = f"Std: {np.mean(self.color_std, axis=0)}"

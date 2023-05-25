@@ -4,8 +4,7 @@ setup(
     name="BallMotion",
     version="0.1.0",
     description="3D tracking and motion analysis of a ball",
-    author="Your Name",
-    author_email="your.email@example.com",
+    author="Florian Beck, Franz Ostler, Jan Duchscherer",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     console_scripts=[
