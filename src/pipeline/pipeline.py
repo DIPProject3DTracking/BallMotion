@@ -10,8 +10,10 @@ class PipelineComponent(ABC):
     def __init__(self):
         pass
 
-    @abstractmethod
     def abbreviate(self) -> str:
+        return self.__class__.__name__
+
+    def stop(self) -> None:
         pass
 
 
@@ -173,6 +175,7 @@ class PipelineStage:
         return [leading, trailing]
 
     def stop(self):
+        self.component.stop()
         self.__pool.shutdown(wait=False)
 
 
