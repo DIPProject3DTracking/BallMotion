@@ -1,9 +1,5 @@
-import statistics
-
 import cv2
 import numpy as np
-
-from pipeline.pipeline import Consumer
 
 
 class ColorPicker:
@@ -135,7 +131,7 @@ class ColorPicker:
         color_bgr = cv2.cvtColor(
             color.astype(np.uint8).reshape(1, 1, 3), cv2.COLOR_LAB2BGR
         ).squeeze()
-        median_str = f"Median (HSV): {color}; (BGR): {color_bgr})"
+        median_str = f"Median (LAB): {color}; (BGR): {color_bgr})"
         std_str = f"Std: {np.mean(self.color_std, axis=0)}"
         self.color_bgr = tuple(int(c) for c in color_bgr.squeeze())
         print(median_str, std_str, sep="\n")
