@@ -40,7 +40,7 @@ def apply_hough_transform(binary_image):
                 y + y_roi,
             )
             # outer circle
-            cv2.circle(color_image, xy, r, (0, 255, 0), 2)
+            cv2.circle(color_image, xy, r, (0, 255, 0), -1)
             # center of the circle
             cv2.circle(color_image, xy, 2, (0, 0, 255), 3)
 
@@ -63,7 +63,7 @@ if __name__ == "__main__":
             print("Could not read frame! Exiting ...")
             break
 
-        binary_image = color_tracker.adaptive_thresholding(frame)
+        binary_image = color_tracker.apply_color_thresholding(frame)
         circle_img = apply_hough_transform(binary_image)
 
         fps = 1 / (time.time() - prev_time)
