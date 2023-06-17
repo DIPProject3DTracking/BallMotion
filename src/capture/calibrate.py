@@ -1,17 +1,13 @@
-# -*- coding: utf-8 -*-
 """
 Created on Sat Jun 17 12:26:01 2023
 
 @author: Franz Ostler
 """
-
 import numpy as np
 import cv2
 import glob
 
-feldanzahl_schachbrett = 0
-
-def kalibriere_kamera():
+def kalibriere_kamera(feldanzahl_schachbrett = 8):
     schachbrett_größe = (feldanzahl_schachbrett-1, feldanzahl_schachbrett-1)  # Größe des Schachbrettmusters
     schachbrettmuster_punkte = []  # 3D-Koordinaten des Schachbrettmusters
     bilder_punkte = []  # 2D-Koordinaten des Schachbrettmusters in den Bildern
@@ -21,7 +17,7 @@ def kalibriere_kamera():
         for j in range(schachbrett_größe[0]):
             schachbrettmuster_punkte.append((j, i, 0))
 
-    bilder = glob.glob('path/*.jpg')  # Liste der Bildpfade
+    bilder = glob.glob('calibration_pictures/*.jpg')  # Liste der Bildpfade
 
     for bild_pfad in bilder:
         bild = cv2.imread(bild_pfad)
@@ -31,17 +27,16 @@ def kalibriere_kamera():
         ret, ecken = cv2.findChessboardCorners(grau, schachbrett_größe, None)
 
         if ret:
-            schachbrettmuster_punkte.append(schachbrettmuster_punkte)
+            schachbrettmuster_punkte.append(np.float32(schachbrettmuster_punkte))
             bilder_punkte.append(ecken)
 
     ret, matrix, dist_koeff, rvecs, tvecs = cv2.calibrateCamera(
         schachbrettmuster_punkte, bilder_punkte, grau.shape[::-1], None, None
     )
-
+    np.savetxt("object_points.txt", np.float32(schachbrettmuster_punkte))
     return matrix, dist_koeff, bilder_punkte
 
-def kalibriere_beide_Kameras(objectPoints, cameraMatrix1, distCoeffs1, imageSize, imagePoints1):
-    
+def kalibriere_beide_Kameras(cameraMatrix1, distCoeffs1, imagePoints1, imageSize=(640, 480), objectPoints=np.loadtxt("object_points.txt")):
     # Abstand zwischen den Kameras
     baseline = 50.0  # 50 cm
     
@@ -49,14 +44,13 @@ def kalibriere_beide_Kameras(objectPoints, cameraMatrix1, distCoeffs1, imageSize
     translationVector2 = np.array([[baseline, 0, 0]], dtype=np.float64)
     
     # Kalibrierung der zweiten Kamera
-    (_, _, _, _, _, rotationMatrix2, _, _, _) = cv2.calibrateCamera(
+    (_, _, _, rotationMatrix2, _, _) = cv2.calibrateCamera(
         objectPoints, imagePoints1, imageSize,
         cameraMatrix1, distCoeffs1,
-        rvecs=None, tvecs=None,
         flags=cv2.CALIB_FIX_INTRINSIC
     )
     
     # Extrinsische Parameter für die zweite Kamera
-    rotationMatrix2 = rotationMatrix2[0]  # Extrahieren der RotationsmatrixranslationVector * versatz
+    rotationMatrix2 = rotationMatrix2[0]  # Extrahieren der Rotationsmatrix
     
     return translationVector2, rotationMatrix2
