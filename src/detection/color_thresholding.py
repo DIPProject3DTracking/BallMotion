@@ -7,8 +7,10 @@ import numpy as np
 
 @dataclass
 class Ellipse:
-    def __init__(self, ellipse):
-        self.ellipse = ellipse
+    def __init__(self, cnt, eccentricity_treshold=0.1):
+        self.ellipse = cv2.fitEllipse(cnt)
+        self.eccentricity = None
+        self.eccentricity_treshold = eccentricity_treshold
 
     @property
     def center(self):
@@ -26,9 +28,15 @@ class Ellipse:
     def angle(self):
         return self.ellipse[2]
 
-    @property
-    def eccentricity(self):
-        self.eccentricity = np.sqrt(1 - (self.major_axis / self.minor_axis) ** 2)
+    def get_eccentricity(self):
+        if self.eccentricity is None:
+            self.eccentricity = np.sqrt(1 - (self.major_axis / self.minor_axis) ** 2)
+        return self.eccentricity
+
+    def draw(self, binary_image):
+        color_image = cv2.cvtColor(binary_image, cv2.COLOR_GRAY2BGR)
+        cv2.ellipse(color_image, self.ellipse, (0, 255, 0), 2)
+        return color_image
 
 
 class ColorSegmenter:
@@ -98,12 +106,11 @@ class ColorSegmenter:
         if not contours:
             return None
         # pick the largest contour if there are several binary blobs
-        cnt = max(contours, key=cv2.contourArea)
-        if cnt.shape[0] < 5:  # fitEllipse requires at least 5 landmarks
+        contour = max(contours, key=cv2.contourArea)
+        if contour.shape[0] < 5:  # fitEllipse requires at least 5 landmarks
             return None
         # fit ellipse to the contour and get its properties
-        detected_ellipse = Ellipse(cv2.fitEllipse(cnt))
-        # calculate eccentricity
+        detected_ellipse = Ellipse(contour)
         if detected_ellipse.minor_axis == 0:
             return None
         return detected_ellipse
@@ -124,14 +131,13 @@ class ColorSegmenter:
             binary_image = self.apply_color_thresholding(frame)
             ellipse = self.calculate_roundness(binary_image)
             if ellipse is not None:
-                print("Roundness:", ellipse.eccentricity)
+                print("Roundness:", ellipse.get_eccentricity())
                 self.ellipses.append(ellipse)
-            cv2.ellipse(binary_image, ellipse, (0, 255, 0), 2)
-
-            cv2.imshow("Processed Frame", binary_image)
+                cv2.imshow("Processed Frame", ellipse.draw(binary_image))
+            else:
+                cv2.imshow("Processed Frame", binary_image)
 
         cap.release()
-        # cv2.destroyWindow("Processed Frame")
         cv2.destroyAllWindows()
 
 
