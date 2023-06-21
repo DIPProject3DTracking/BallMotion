@@ -1,14 +1,17 @@
-from dataclasses import dataclass
 from typing import List, Optional
 
 import cv2
 import numpy as np
 
+from pipeline.pipeline import Mapper
 
-@dataclass
+
 class Ellipse:
     def __init__(self, cnt: np.ndarray, eccentricity_treshold: float = 0.9) -> None:
         self.ellipse = cv2.fitEllipse(cnt)
+        self.cnt_area = cv2.contourArea(cnt)
+        self.radius: Optional[float] = None
+        self.circ_area: Optional[float] = None
         self.eccentricity: Optional[float] = None
         self.eccentricity_treshold = eccentricity_treshold
 
@@ -28,6 +31,19 @@ class Ellipse:
     def angle(self) -> float:
         return self.ellipse[2]
 
+    def get_radius(self) -> float:
+        if self.radius is None:
+            self.radius = (self.major_axis + self.minor_axis) / 4
+        return self.radius
+
+    def get_circ_area(self) -> float:
+        if self.circ_area is None:
+            self.circ_area = np.pi * (self.get_radius()) ** 2
+        return self.circ_area
+
+    def get_rel_area_error(self) -> float:
+        return (self.cnt_area - self.circ_area) / self.cnt_area
+
     def get_eccentricity(self) -> float:
         if self.eccentricity is None:
             self.eccentricity = np.sqrt(1 - (self.major_axis / self.minor_axis) ** 2)
@@ -39,10 +55,25 @@ class Ellipse:
         color_image = cv2.cvtColor(binary_image, cv2.COLOR_GRAY2BGR)
         cv2.ellipse(color_image, self.ellipse, (0, 255, 0), 2)
         cv2.circle(color_image, tuple(int(i) for i in self.center), 6, (0, 0, 255), -1)
+        text = (
+            f"Radius: {self.get_radius():.2f}, Eccentricity: {self.get_eccentricity():.2f}, "
+            + f"Cnt Area: {self.cnt_area:.2f}, Circ Area: {self.get_circ_area():.2f}, Rel Error: {self.get_rel_area_error():.3%}"
+        )
+        cv2.putText(
+            color_image,
+            text,
+            (10, 50),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            1,
+            (255, 255, 255),
+            2,
+            cv2.LINE_AA,
+        )
+
         return color_image
 
 
-class ColorSegmenter:
+class ColorSegmenter(Mapper):
     def __init__(
         self,
         base_color: List[int],
@@ -51,6 +82,7 @@ class ColorSegmenter:
         blur_ksize: int = 11,
         blur_sigma: int = 3,
     ) -> None:
+        super(ColorSegmenter, self).__init__()
         self.blur_ksize = blur_ksize
         self.blur_sigma = blur_sigma
 
@@ -70,6 +102,11 @@ class ColorSegmenter:
             cv2.MORPH_ELLIPSE, (morph_ksize, morph_ksize)
         )
 
+    def map(self, frame: np.ndarray) -> Optional[Ellipse]:
+        binary_image = self.apply_color_thresholding(frame)
+        ellipse = self.detect_ellipse(binary_image)
+        return ellipse
+
     def apply_color_thresholding(self, frame: np.ndarray) -> np.ndarray:
         lab_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2LAB)
 
@@ -85,9 +122,10 @@ class ColorSegmenter:
 
         binary_image = cv2.inRange(lab_frame, self.lower_bound, self.upper_bound)
 
+        # binary_image = cv2.medianBlur(binary_image, 5)
         # Perform opening
         binary_image = cv2.morphologyEx(
-            binary_image, cv2.MORPH_ERODE, self.structuring_element, iterations=4
+            binary_image, cv2.MORPH_OPEN, self.structuring_element, iterations=6
         )
 
         return binary_image
