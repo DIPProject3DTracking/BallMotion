@@ -1,8 +1,9 @@
+import threading
 from abc import ABC, abstractmethod
 from typing import Any
 from multiprocessing import Queue, Pool
-# from queue import Queue
 from concurrent.futures import ThreadPoolExecutor as ThreadPool
+
 # from multiprocessing import Pool
 
 MAX_QUEUE_BUFFER = 4
@@ -70,8 +71,8 @@ class Pipeline:
                 message += " -[" + str(trailing_size) + "]-> "
         return message
 
-    def add_component(self, component: PipelineComponent) -> None:
-        stage = PipelineStage(component)
+    def add_component(self, component: PipelineComponent, simple_threading=False) -> None:
+        stage = PipelineStage(component, simple_threading)
         if len(self.__stages) > 0:
             connector = PipelineConnector()
             before = self.__stages[-1]
@@ -112,8 +113,8 @@ class PipelineBuilder:
     def __init__(self):
         self.__pipeline = Pipeline()
 
-    def add(self, component: PipelineComponent) -> 'PipelineBuilder':
-        self.__pipeline.add_component(component)
+    def add(self, component: PipelineComponent, simple_threading=False) -> 'PipelineBuilder':
+        self.__pipeline.add_component(component, simple_threading)
         return self
 
     def build(self) -> Pipeline:
@@ -121,7 +122,7 @@ class PipelineBuilder:
 
 
 class PipelineStage:
-    def __init__(self, component: PipelineComponent):
+    def __init__(self, component: PipelineComponent, use_simple_threading=False):
         self._leadingConnector = None
         self._trailingConnector = None
         self.component = component
@@ -133,7 +134,11 @@ class PipelineStage:
             self.__action = self.__map
         else:
             raise TypeError('Unknown component type')
-        self.__pool = ThreadPool(1)
+        if use_simple_threading:
+            self.__pool = threading.Thread(target=self.__loop)
+        else:
+            self.__pool = ThreadPool(1)
+        self.__simple_threading = use_simple_threading
 
     @property
     def leading(self) -> 'PipelineConnector':
@@ -152,7 +157,10 @@ class PipelineStage:
         self._trailingConnector = connector
 
     def run(self):
-        self.__pool.submit(self.__loop)
+        if self.__simple_threading:
+            self.__pool.start()
+        else:
+            self.__pool.submit(self.__loop)
 
     def __loop(self):
         while True:
@@ -178,7 +186,8 @@ class PipelineStage:
 
     def stop(self):
         self.component.stop()
-        self.__pool.shutdown(wait=False)
+        if self.__simple_threading:
+            self.__pool.shutdown(wait=False)
 
 
 class PipelineConnector:
