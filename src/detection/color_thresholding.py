@@ -1,7 +1,8 @@
-from typing import List, Optional
+from typing import List, Optional, Union, Tuple
 
 import cv2
 import numpy as np
+from numpy import ndarray
 
 from pipeline.pipeline import Mapper
 
@@ -50,15 +51,22 @@ class Ellipse:
         return self.eccentricity
 
     def draw(self, binary_image: np.ndarray) -> np.ndarray:
+        print("Pre-Draw")
         if self.get_eccentricity() > self.eccentricity_treshold:
+            print("Simple circle")
             return binary_image
+        print("Drawing color")
         color_image = cv2.cvtColor(binary_image, cv2.COLOR_GRAY2BGR)
+        print("Drawing ellipse")
         cv2.ellipse(color_image, self.ellipse, (0, 255, 0), 2)
+        print("Drawing corcle")
         cv2.circle(color_image, tuple(int(i) for i in self.center), 6, (0, 0, 255), -1)
+
         text = (
-            f"Radius: {self.get_radius():.2f}, Eccentricity: {self.get_eccentricity():.2f}, "
-            + f"Cnt Area: {self.cnt_area:.2f}, Circ Area: {self.get_circ_area():.2f}, Rel Error: {self.get_rel_area_error():.3%}"
+                f"Radius: {self.get_radius():.2f}, Eccentricity: {self.get_eccentricity():.2f}, "
+                + f"Cnt Area: {self.cnt_area:.2f}, Circ Area: {self.get_circ_area():.2f}, Rel Error: {self.get_rel_area_error():.3%}"
         )
+        print("Adding text")
         cv2.putText(
             color_image,
             text,
@@ -75,12 +83,12 @@ class Ellipse:
 
 class ColorSegmenter(Mapper):
     def __init__(
-        self,
-        base_color: List[int],
-        rel_tol: List[float],
-        morph_ksize: int = 5,
-        blur_ksize: int = 11,
-        blur_sigma: int = 3,
+            self,
+            base_color: List[int],
+            rel_tol: List[float],
+            morph_ksize: int = 5,
+            blur_ksize: int = 11,
+            blur_sigma: int = 3,
     ) -> None:
         super(ColorSegmenter, self).__init__()
         self.blur_ksize = blur_ksize
@@ -102,10 +110,14 @@ class ColorSegmenter(Mapper):
             cv2.MORPH_ELLIPSE, (morph_ksize, morph_ksize)
         )
 
-    def map(self, frame: np.ndarray) -> Optional[Ellipse]:
+    def map(self, frame: np.ndarray) -> tuple[ndarray, np.ndarray, Optional[Ellipse]]:
         binary_image = self.apply_color_thresholding(frame)
         ellipse = self.detect_ellipse(binary_image)
-        return ellipse
+        if ellipse is not None:
+            circle_img = ellipse.draw(frame)
+        else:
+            circle_img = frame
+        return frame, circle_img, ellipse
 
     def apply_color_thresholding(self, frame: np.ndarray) -> np.ndarray:
         lab_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2LAB)

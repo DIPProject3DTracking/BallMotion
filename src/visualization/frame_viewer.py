@@ -16,8 +16,12 @@ class FrameViewer(Consumer):
         FrameViewer.__window_index += 1
 
     def consume(self, obj: Any) -> None:
-        cv2.imshow(self.__window_name, obj)
-        cv2.waitKey(1)
+        if type(obj) is tuple:
+            cv2.imshow(self.__window_name, obj[1])
+            cv2.waitKey(1)
+        else:
+            cv2.imshow(self.__window_name, obj)
+            cv2.waitKey(1)
 
     def stop(self):
         cv2.destroyWindow(WINDOW_NAME)
