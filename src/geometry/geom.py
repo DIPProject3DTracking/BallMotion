@@ -20,7 +20,8 @@ class Circle(Geom2D):
 
 class Geom3D(ABC):
     def __init__(self, position: np.ndarray):
-        super().__init__(position)
+        super().__init__()
+        self.position = position
 
 
 class Sphere(Geom3D):
@@ -95,9 +96,7 @@ class SpatialGeometryTransformer(Mapper):
         )
 
         position = np.mean(world_point, axis=0)[:3]
-        return Sphere(
-            position, left.radius
-        )  # or right.radius depending on how you handle radius in 3D.
+        return Sphere(position, left.radius)  # or right.radius depending on how you handle radius in 3D.
 
     def map(self, obj):
         left = obj[0]
