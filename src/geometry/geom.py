@@ -1,4 +1,5 @@
 from abc import ABC
+from typing import Optional, Tuple
 
 import numpy as np
 from scipy.optimize import minimize
@@ -60,27 +61,30 @@ class SpatialGeometryTransformer(Mapper):
     def homogenize(self, point):
         return np.append(point, 1)
 
-    def find_closest_alpha(self, left_vec, right_vec) -> tuple[float, float]:
+    def find_closest_alpha(self, left_vec, right_vec) -> Optional[np.ndarray]:
         def objective(alpha):
             left_p = np.array([0, 0, 0]) + alpha[0] * left_vec
             right_p = np.array([120.0, 0, 0]) + alpha[1] * right_vec
             return np.linalg.norm(left_p - right_p)
 
         result = minimize(objective, self.alpha, method="L-BFGS-B")
-        return result.x
+        if result.success:
+            return result.x
 
-    def triangulate(self, left: Circle, right: Circle) -> Sphere:
+    def triangulate(self, left: Circle, right: Circle) -> Optional[Sphere]:
         left_homogeneous_q = self.homogenize(left.position)
         right_homogeneous_q = self.homogenize(right.position)
 
         left_vect = np.dot(self.__left_inverse, left_homogeneous_q)
         right_vect = np.dot(self.__right_inverse, right_homogeneous_q)
 
-        self.alpha = self.find_closest_alpha(left_vect, right_vect)
+        alpha = self.find_closest_alpha(left_vect, right_vect)
+        if alpha is not None:
+            self.alpha = alpha
 
         world_point = self.tau_world + self.alpha * np.vstack((left_vect, right_vect))
 
-        position = sum(world_point[:2]) / world_point[2] / 2
+        position = sum(world_point[:2]) / (world_point[2] * 2)
         return Sphere(
             position, left.radius
         )  # or right.radius depending on how you handle radius in 3D.
