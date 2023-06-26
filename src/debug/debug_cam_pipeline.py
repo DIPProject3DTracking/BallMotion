@@ -25,6 +25,15 @@ class DebugCamImageDisplay(Consumer):
         cv2.waitKey(1)
 
 
+class ResultPrinter(Consumer):
+
+    def __init__(self):
+        super().__init__()
+
+    def consume(self, obj):
+        print(obj)
+
+
 def main():
     cam = cv2.VideoCapture(0)
 

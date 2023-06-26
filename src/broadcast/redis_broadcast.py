@@ -30,7 +30,7 @@ if __name__ == "__main__":
 
         def supply(self):
             self.i += 0.1
-            pos = {"x": self.i, "y": 0, "z": 0}
+            pos = {"x": -0.5, "y": 1.2, "z": 0.4}
             msg = json.dumps(pos)
             time.sleep(0.5)
             print(msg)

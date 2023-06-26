@@ -17,7 +17,11 @@ class FrameViewer(Consumer):
 
     def consume(self, obj: Any) -> None:
         if type(obj) is tuple:
-            cv2.imshow(self.__window_name, obj[1])
+            cv2.imshow(self.__window_name, obj[2])
+            cv2.waitKey(1)
+            cv2.imshow(self.__window_name + "_orig", obj[1])
+            cv2.waitKey(1)
+            cv2.imshow(self.__window_name + "_circle", obj[0])
             cv2.waitKey(1)
         else:
             cv2.imshow(self.__window_name, obj)

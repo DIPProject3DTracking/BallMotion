@@ -29,11 +29,12 @@ class ColorPicker:
     def run(self):
         median = None
         cap = cv2.VideoCapture(0)
+
         self.width, self.height = (
             int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
             int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)),
         )
-        self.half_width, self.half_height = self.width // 2, self.height // 2
+        self.half_width, self.half_height = self.width // 4, self.height // 2
         self.update_mask()
 
         while True:

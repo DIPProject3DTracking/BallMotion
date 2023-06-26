@@ -50,35 +50,51 @@ class Ellipse:
             self.eccentricity = np.sqrt(1 - (self.major_axis / self.minor_axis) ** 2)
         return self.eccentricity
 
-    def draw(self, binary_image: np.ndarray) -> np.ndarray:
-        print("Pre-Draw")
+    def draw(self, image: np.ndarray) -> np.ndarray:
         if self.get_eccentricity() > self.eccentricity_treshold:
-            print("Simple circle")
-            return binary_image
-        print("Drawing color")
-        color_image = cv2.cvtColor(binary_image, cv2.COLOR_GRAY2BGR)
-        print("Drawing ellipse")
-        cv2.ellipse(color_image, self.ellipse, (0, 255, 0), 2)
-        print("Drawing corcle")
-        cv2.circle(color_image, tuple(int(i) for i in self.center), 6, (0, 0, 255), -1)
+            return image
+        # color_image = cv2.cvtColor(binary_image, cv2.COLOR_GRAY2BGR)
+        cv2.ellipse(image, self.ellipse, (0, 255, 0), 2)
+        cv2.circle(image, tuple(int(i) for i in self.center), 6, (0, 0, 255), -1)
 
-        text = (
-                f"Radius: {self.get_radius():.2f}, Eccentricity: {self.get_eccentricity():.2f}, "
-                + f"Cnt Area: {self.cnt_area:.2f}, Circ Area: {self.get_circ_area():.2f}, Rel Error: {self.get_rel_area_error():.3%}"
-        )
-        print("Adding text")
+        textA = f"Radius: {self.get_radius():.2f}, Eccentricity: {self.get_eccentricity():.2f},"
+        textB = f"Cnt Area: {self.cnt_area:.2f}, Circ Area: {self.get_circ_area():.2f}"
+        textC = f"Rel Error: {self.get_rel_area_error():.2%}"
+
         cv2.putText(
-            color_image,
-            text,
-            (10, 50),
+            image,
+            textA,
+            (10, 20),
             cv2.FONT_HERSHEY_SIMPLEX,
-            1,
+            0.5,
             (255, 255, 255),
-            2,
+            1,
             cv2.LINE_AA,
         )
 
-        return color_image
+        cv2.putText(
+            image,
+            textB,
+            (10, 35),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.5,
+            (255, 255, 255),
+            1,
+            cv2.LINE_AA,
+        )
+
+        cv2.putText(
+            image,
+            textC,
+            (10, 50),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.5,
+            (255, 255, 255),
+            1,
+            cv2.LINE_AA,
+        )
+
+        return image
 
 
 class ColorSegmenter(Mapper):
@@ -110,14 +126,15 @@ class ColorSegmenter(Mapper):
             cv2.MORPH_ELLIPSE, (morph_ksize, morph_ksize)
         )
 
-    def map(self, frame: np.ndarray) -> tuple[ndarray, np.ndarray, Optional[Ellipse]]:
+    def map(self, frame: np.ndarray) -> tuple[ndarray, np.ndarray, np.ndarray, Optional[Ellipse]]:
         binary_image = self.apply_color_thresholding(frame)
         ellipse = self.detect_ellipse(binary_image)
+        circled = frame.copy()
         if ellipse is not None:
-            circle_img = ellipse.draw(frame)
+            circled = ellipse.draw(circled)
         else:
-            circle_img = frame
-        return frame, circle_img, ellipse
+            circled = frame
+        return frame, circled, binary_image, ellipse
 
     def apply_color_thresholding(self, frame: np.ndarray) -> np.ndarray:
         lab_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2LAB)
@@ -148,6 +165,7 @@ class ColorSegmenter(Mapper):
         )
         if not contours:
             return None
+
         contour = max(contours, key=cv2.contourArea)
         if contour.shape[0] < 5:
             return None
