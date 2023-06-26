@@ -66,7 +66,7 @@ class SpatialGeometryTransformer(Mapper):
             right_p = np.array([120.0, 0, 0]) + alpha[1] * right_vec
             return np.linalg.norm(left_p - right_p)
 
-        result = minimize(objective, self.alpha, method="nelder-mead")
+        result = minimize(objective, self.alpha, method="L-BFGS-B")
         return result.x
 
     def triangulate(self, left: Circle, right: Circle) -> Sphere:
