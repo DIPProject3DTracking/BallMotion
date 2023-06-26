@@ -2,6 +2,7 @@ import time
 
 from pipeline.pipeline import Consumer
 import redis
+import pickle
 
 
 class RedisBroadcast(Consumer):
@@ -12,7 +13,12 @@ class RedisBroadcast(Consumer):
         self.channel = channel
 
     def consume(self, message):
-        self.redis_client.publish(self.channel, message)
+        if message is None:
+            return
+
+        json_message = "{\"x\": %f, \"y\": %f, \"z\": %f}" % (message["x"], message["y"], message["z"])
+        print(json_message)
+        self.redis_client.publish(self.channel, json_message)
 
 
 if __name__ == "__main__":

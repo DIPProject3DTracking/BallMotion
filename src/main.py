@@ -1,5 +1,6 @@
 import time
 import numpy as np
+import redis
 
 from pipeline.pipeline import Pipeline
 from stereo.stereo_pipeline import *
@@ -9,6 +10,7 @@ from stereo.split import StereoSplitter
 from detection.color_thresholding import ColorSegmenter
 from geometry.geom import StereoEllipseGeometryExtractor, SpatialGeometryTransformer
 from debug.debug_cam_pipeline import ResultPrinter
+from broadcast.redis_broadcast import RedisBroadcast
 
 
 def main():
@@ -24,7 +26,7 @@ def main():
     # color_point = [202, 134, 192]
     color_point = [252, 157, 199]
     # tolerance = [0.7, 0.11, 0.1]
-    tolerance = [0.85, 0.075, 0.075]
+    tolerance = [0.925, 0.075, 0.075]
 
     left_segmenter = ColorSegmenter(base_color=color_point, rel_tol=tolerance)
     right_segmenter = ColorSegmenter(base_color=color_point, rel_tol=tolerance)
@@ -42,13 +44,15 @@ def main():
 
     geometry_transformer = SpatialGeometryTransformer(p_left_matrix, p_right_matrix)
 
+    client = redis.Redis(host='localhost', port=6379)
+
     pipe1 = Pipeline.builder() \
         .add(stereo_cam_sup) \
         .add(frame_splitter) \
         .add(stereo_segmenter) \
         .add(geometry_extractor) \
         .add(geometry_transformer) \
-        .add(ResultPrinter()) \
+        .add(RedisBroadcast(client, "Ball")) \
         .build()
 
     try:

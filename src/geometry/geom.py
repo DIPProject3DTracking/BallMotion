@@ -1,6 +1,7 @@
 from abc import ABC
 from typing import Optional, Tuple
 
+import cv2
 import numpy as np
 from scipy.optimize import minimize
 
@@ -38,15 +39,29 @@ class StereoEllipseGeometryExtractor(Mapper):
         left = obj[0]
         right = obj[1]
 
+        cv2.imshow("left", left[1])
+        cv2.waitKey(1)
+        cv2.imshow("right", right[1])
+        cv2.waitKey(1)
+
         ellipse_left = left[-1]
-        radius_left = ellipse_left.get_radius()
-        center_left = ellipse_left.center
+        center_left = None
+        radius_left = None
+        if ellipse_left is not None:
+            radius_left = ellipse_left.get_radius()
+            center_left = ellipse_left.center
 
         ellipse_right = right[-1]
-        radius_right = ellipse_right.get_radius()
-        center_right = ellipse_right.center
+        center_right = None
+        radius_right = None
+        if ellipse_right is not None:
+            radius_right = ellipse_right.get_radius()
+            center_right = ellipse_right.center
 
-        return Circle(center_left, radius_left), Circle(center_right, radius_right)
+        circle_left = Circle(center_left, radius_left) if ellipse_left is not None else None
+        circle_right = Circle(center_right, radius_right) if ellipse_right is not None else None
+
+        return circle_left, circle_right
 
 
 class SpatialGeometryTransformer(Mapper):
@@ -79,8 +94,6 @@ class SpatialGeometryTransformer(Mapper):
     def triangulate(self, left: Circle, right: Circle) -> Optional[Sphere]:
         left_homogeneous_q = self.homogenize(left.position).T
         right_homogeneous_q = self.homogenize(right.position).T
-        print(left_homogeneous_q.shape, right_homogeneous_q.shape)
-        print(self.__left_inverse.shape, self.__right_inverse.shape)
 
         left_vect = self.__left_inverse @ left_homogeneous_q
         right_vect = self.__right_inverse @ right_homogeneous_q
@@ -102,4 +115,5 @@ class SpatialGeometryTransformer(Mapper):
         left = obj[0]
         right = obj[1]
 
-        return self.triangulate(left, right)
+        sphere = self.triangulate(left, right) if left is not None and right is not None else None
+        return {"x": float(sphere.position[0]), "y": float(sphere.position[1]), "z": float(sphere.position[2])} if sphere is not None else None
