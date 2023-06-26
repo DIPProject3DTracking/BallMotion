@@ -1,4 +1,5 @@
 import time
+import numpy as np
 
 from pipeline.pipeline import Pipeline
 from stereo.stereo_pipeline import *
@@ -30,7 +31,16 @@ def main():
     stereo_segmenter = StereoMapper(left_segmenter, right_segmenter)
 
     geometry_extractor = StereoEllipseGeometryExtractor()
-    geometry_transformer = SpatialGeometryTransformer()
+
+    p_right_matrix = np.array([[2.8, 0, 0, -120.0],
+                               [0, 2.8, 0, 0],
+                               [0, 0, 1, 0]])
+
+    p_left_matrix = np.array([[2.8, 0, 0, 0],
+                              [0, 2.8, 0, 0],
+                              [0, 0, 1, 0]])
+
+    geometry_transformer = SpatialGeometryTransformer(p_left_matrix, p_right_matrix)
 
     pipe1 = Pipeline.builder() \
         .add(stereo_cam_sup) \

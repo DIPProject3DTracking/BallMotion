@@ -51,10 +51,32 @@ class StereoEllipseGeometryExtractor(Mapper):
 
 class SpatialGeometryTransformer(Mapper):
 
-    def __init__(self):
+    def __init__(self, left_matrix, right_matrix):
         super().__init__()
+        self.__left_matrix = left_matrix
+        self.__right_matrix = right_matrix
+        self.__left_inverse = np.linalg.pinv(left_matrix)
+        self.__right_inverse = np.linalg.pinv(right_matrix)
 
-    def triangulate(self, cam_matrix: np.ndarray, left: Circle, right: Circle) -> Sphere:
+    def homogenize(self, point):
+        return np.append(point, 1)
+
+    def find_closest_alpa(self, left_vec, right_vec, alpha_start) -> tuple[float, float]:
+
+    def triangulate(self, left: Circle, right: Circle) -> Sphere:
+        left_homogeneous_q = self.homogenize(left.position)
+        right_homogeneous_q = self.homogenize(right.position)
+
+        left_vect = left_homogeneous_q * self.__left_inverse
+        right_vect = right_homogeneous_q * self.__right_inverse
+
+        alpha_start = 0.5
+
+        left_a, right_a = self.find_closest_alpa(left_vect, right_vect, alpha_start)
+
+        left_p = np.array([0, 0, 0]) + left_a * left_vect
+        right_p = np.array([120.0, 0, 0]) + right_a * right_vect
+
         pass
 
     def map(self, obj):
