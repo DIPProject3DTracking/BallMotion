@@ -31,6 +31,8 @@ class Sphere(Geom3D):
 class StereoEllipseGeometryExtractor(Mapper):
     def __init__(self):
         super().__init__()
+        self.alpha = np.array([0.5, 0.5])
+        self.tau_world = np.array([[0, 0, 0], [120.0, 0, 0]])
 
     def map(self, obj):
         left = obj[0]
@@ -58,15 +60,13 @@ class SpatialGeometryTransformer(Mapper):
     def homogenize(self, point):
         return np.append(point, 1)
 
-    def find_closest_alpha(
-        self, left_vec, right_vec, alpha_start
-    ) -> tuple[float, float]:
+    def find_closest_alpha(self, left_vec, right_vec) -> tuple[float, float]:
         def objective(alpha):
             left_p = np.array([0, 0, 0]) + alpha[0] * left_vec
             right_p = np.array([120.0, 0, 0]) + alpha[1] * right_vec
             return np.linalg.norm(left_p - right_p)
 
-        result = minimize(objective, alpha_start, method="nelder-mead")
+        result = minimize(objective, self.alpha, method="nelder-mead")
         return result.x
 
     def triangulate(self, left: Circle, right: Circle) -> Sphere:
@@ -76,16 +76,11 @@ class SpatialGeometryTransformer(Mapper):
         left_vect = np.dot(self.__left_inverse, left_homogeneous_q)
         right_vect = np.dot(self.__right_inverse, right_homogeneous_q)
 
-        alpha_start = np.array([0.5, 0.5])
+        self.alpha = self.find_closest_alpha(left_vect, right_vect)
 
-        left_alpha, right_alpha = self.find_closest_alpha(
-            left_vect, right_vect, alpha_start
-        )
+        world_point = self.tau_world + self.alpha * np.vstack((left_vect, right_vect))
 
-        left_p = np.array([0, 0, 0]) + left_alpha * left_vect
-        right_p = np.array([120.0, 0, 0]) + right_alpha * right_vect
-
-        position = (left_p + right_p) / 2
+        position = sum(world_point[:2]) / world_point[2] / 2
         return Sphere(
             position, left.radius
         )  # or right.radius depending on how you handle radius in 3D.
