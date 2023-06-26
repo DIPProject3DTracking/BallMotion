@@ -58,8 +58,12 @@ class StereoEllipseGeometryExtractor(Mapper):
             radius_right = ellipse_right.get_radius()
             center_right = ellipse_right.center
 
-        circle_left = Circle(center_left, radius_left) if ellipse_left is not None else None
-        circle_right = Circle(center_right, radius_right) if ellipse_right is not None else None
+        circle_left = (
+            Circle(center_left, radius_left) if ellipse_left is not None else None
+        )
+        circle_right = (
+            Circle(center_right, radius_right) if ellipse_right is not None else None
+        )
 
         return circle_left, circle_right
 
@@ -106,7 +110,7 @@ class SpatialGeometryTransformer(Mapper):
             self.alpha.reshape(-1, 1), np.vstack((left_vect, right_vect))
         )
 
-        position = np.mean(world_point, axis=0)[:3]
+        position = np.mean(world_point[:, :3] / world_point[:, 3], axis=0)
         return Sphere(
             position, left.radius
         )  # or right.radius depending on how you handle radius in 3D.
@@ -115,5 +119,17 @@ class SpatialGeometryTransformer(Mapper):
         left = obj[0]
         right = obj[1]
 
-        sphere = self.triangulate(left, right) if left is not None and right is not None else None
-        return {"x": float(sphere.position[0]), "y": float(sphere.position[1]), "z": float(sphere.position[2])} if sphere is not None else None
+        sphere = (
+            self.triangulate(left, right)
+            if left is not None and right is not None
+            else None
+        )
+        return (
+            {
+                "x": float(sphere.position[0]),
+                "y": float(sphere.position[1]),
+                "z": float(sphere.position[2]),
+            }
+            if sphere is not None
+            else None
+        )
