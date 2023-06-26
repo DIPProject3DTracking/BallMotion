@@ -54,15 +54,23 @@ class SpatialGeometryTransformer(Mapper):
         self.__left_inverse = np.linalg.pinv(left_matrix)
         self.__right_inverse = np.linalg.pinv(right_matrix)
         self.alpha = np.array([0.5, 0.5])
-        self.tau_world = np.array([[0, 0, 0], [120.0, 0, 0]])
+        self.tau_world = np.array([[0, 0, 0, 0], [120.0, 0, 0, 0]])
 
     def homogenize(self, point):
         return np.append(point, 1)
 
     def find_closest_alpha(self, left_vec, right_vec) -> Optional[np.ndarray]:
         def objective(alpha):
-            left_p = np.array([0, 0, 0]) + alpha[0] * left_vec
-            right_p = np.array([120.0, 0, 0]) + alpha[1] * right_vec
+            # print(alpha, left_vec, right_vec, sep="\n")
+            # print(alpha.shape, left_vec.shape, right_vec.shape, sep="\n")
+            assert left_vec.shape == (
+                4,
+            ), f"left_vec.shape = {(alpha[0] * left_vec).shape}"
+            assert right_vec.shape == (
+                4,
+            ), f"right_vec.shape: {(alpha[1] * right_vec).shape}"
+            left_p = np.array([0, 0, 0, 0]) + alpha[0] * left_vec
+            right_p = np.array([120.0, 0, 0, 0]) + alpha[1] * right_vec
             return np.linalg.norm(left_p - right_p)
 
         result = minimize(objective, self.alpha, method="L-BFGS-B")
@@ -82,9 +90,11 @@ class SpatialGeometryTransformer(Mapper):
         if alpha is not None:
             self.alpha = alpha
 
-        world_point = self.tau_world + self.alpha * np.vstack((left_vect, right_vect))
+        world_point = self.tau_world + np.multiply(
+            self.alpha.reshape(-1, 1), np.vstack((left_vect, right_vect))
+        )
 
-        position = sum(world_point[:2]) / (world_point[2] * 2)
+        position = np.mean(world_point, axis=0)[:3]
         return Sphere(
             position, left.radius
         )  # or right.radius depending on how you handle radius in 3D.
