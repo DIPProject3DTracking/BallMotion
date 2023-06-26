@@ -32,8 +32,6 @@ class Sphere(Geom3D):
 class StereoEllipseGeometryExtractor(Mapper):
     def __init__(self):
         super().__init__()
-        self.alpha = np.array([0.5, 0.5])
-        self.tau_world = np.array([[0, 0, 0], [120.0, 0, 0]])
 
     def map(self, obj):
         left = obj[0]
@@ -53,10 +51,10 @@ class StereoEllipseGeometryExtractor(Mapper):
 class SpatialGeometryTransformer(Mapper):
     def __init__(self, left_matrix, right_matrix):
         super().__init__()
-        self.__left_matrix = left_matrix
-        self.__right_matrix = right_matrix
         self.__left_inverse = np.linalg.pinv(left_matrix)
         self.__right_inverse = np.linalg.pinv(right_matrix)
+        self.alpha = np.array([0.5, 0.5])
+        self.tau_world = np.array([[0, 0, 0], [120.0, 0, 0]])
 
     def homogenize(self, point):
         return np.append(point, 1)
@@ -72,11 +70,13 @@ class SpatialGeometryTransformer(Mapper):
             return result.x
 
     def triangulate(self, left: Circle, right: Circle) -> Optional[Sphere]:
-        left_homogeneous_q = self.homogenize(left.position)
-        right_homogeneous_q = self.homogenize(right.position)
+        left_homogeneous_q = self.homogenize(left.position).T
+        right_homogeneous_q = self.homogenize(right.position).T
+        print(left_homogeneous_q.shape, right_homogeneous_q.shape)
+        print(self.__left_inverse.shape, self.__right_inverse.shape)
 
-        left_vect = np.dot(self.__left_inverse, left_homogeneous_q)
-        right_vect = np.dot(self.__right_inverse, right_homogeneous_q)
+        left_vect = self.__left_inverse @ left_homogeneous_q
+        right_vect = self.__right_inverse @ right_homogeneous_q
 
         alpha = self.find_closest_alpha(left_vect, right_vect)
         if alpha is not None:
@@ -94,3 +94,41 @@ class SpatialGeometryTransformer(Mapper):
         right = obj[1]
 
         return self.triangulate(left, right)
+
+
+import unittest
+
+from pipeline.pipeline import Mapper
+
+
+class TestSpatialGeometryTransformer(unittest.TestCase):
+    def setUp(self):
+        left_matrix = np.arange(12).reshape((3, 4))
+        right_matrix = np.arange(12).reshape((3, 4))
+        self.transformer = SpatialGeometryTransformer(left_matrix, right_matrix)
+
+    def test_homogenize(self):
+        point = np.array([1, 2, 3])
+        result = self.transformer.homogenize(point)
+        np.testing.assert_array_equal(result, np.array([1, 2, 3, 1]))
+
+    def test_find_closest_alpha(self):
+        left_vec = np.array([1, 0, 0])
+        right_vec = np.array([0, 1, 0])
+        result = self.transformer.find_closest_alpha(left_vec, right_vec)
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, np.ndarray)
+        self.assertEqual(result.shape, (2,))
+
+    def test_triangulate(self):
+        left_circle = Circle(np.array([1, 0]), 1)
+        right_circle = Circle(np.array([0, 1]), 1)
+        result = self.transformer.triangulate(left_circle, right_circle)
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, Sphere)
+        np.testing.assert_array_almost_equal(result.position, np.array([0.5, 0.5]))
+        self.assertEqual(result.radius, left_circle.radius)
+
+
+if __name__ == "__main__":
+    unittest.main()
