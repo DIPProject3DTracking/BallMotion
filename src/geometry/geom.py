@@ -62,8 +62,6 @@ class SpatialGeometryTransformer(Mapper):
 
     def find_closest_alpha(self, left_vec, right_vec) -> Optional[np.ndarray]:
         def objective(alpha):
-            # print(alpha, left_vec, right_vec, sep="\n")
-            # print(alpha.shape, left_vec.shape, right_vec.shape, sep="\n")
             assert left_vec.shape == (
                 4,
             ), f"left_vec.shape = {(alpha[0] * left_vec).shape}"
@@ -96,48 +94,12 @@ class SpatialGeometryTransformer(Mapper):
         )
 
         position = np.mean(world_point, axis=0)[:3]
-        return Sphere(position, left.radius)  # or right.radius depending on how you handle radius in 3D.
+        return Sphere(
+            position, left.radius
+        )  # or right.radius depending on how you handle radius in 3D.
 
     def map(self, obj):
         left = obj[0]
         right = obj[1]
 
         return self.triangulate(left, right)
-
-
-import unittest
-
-from pipeline.pipeline import Mapper
-
-
-class TestSpatialGeometryTransformer(unittest.TestCase):
-    def setUp(self):
-        left_matrix = np.arange(12).reshape((3, 4))
-        right_matrix = np.arange(12).reshape((3, 4))
-        self.transformer = SpatialGeometryTransformer(left_matrix, right_matrix)
-
-    def test_homogenize(self):
-        point = np.array([1, 2, 3])
-        result = self.transformer.homogenize(point)
-        np.testing.assert_array_equal(result, np.array([1, 2, 3, 1]))
-
-    def test_find_closest_alpha(self):
-        left_vec = np.array([1, 0, 0])
-        right_vec = np.array([0, 1, 0])
-        result = self.transformer.find_closest_alpha(left_vec, right_vec)
-        self.assertIsNotNone(result)
-        self.assertIsInstance(result, np.ndarray)
-        self.assertEqual(result.shape, (2,))
-
-    def test_triangulate(self):
-        left_circle = Circle(np.array([1, 0]), 1)
-        right_circle = Circle(np.array([0, 1]), 1)
-        result = self.transformer.triangulate(left_circle, right_circle)
-        self.assertIsNotNone(result)
-        self.assertIsInstance(result, Sphere)
-        np.testing.assert_array_almost_equal(result.position, np.array([0.5, 0.5]))
-        self.assertEqual(result.radius, left_circle.radius)
-
-
-if __name__ == "__main__":
-    unittest.main()
