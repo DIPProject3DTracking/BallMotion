@@ -1,16 +1,17 @@
 import time
+
 import numpy as np
 import redis
 
-from pipeline.pipeline import Pipeline
-from stereo.stereo_pipeline import *
-from capture.frame_supplier import FrameSupplier
-from visualization.frame_viewer import FrameViewer
-from stereo.split import StereoSplitter
-from detection.color_thresholding import ColorSegmenter
-from geometry.geom import StereoEllipseGeometryExtractor, SpatialGeometryTransformer
-from debug.debug_cam_pipeline import ResultPrinter
 from broadcast.redis_broadcast import RedisBroadcast
+from capture.frame_supplier import FrameSupplier
+from debug.debug_cam_pipeline import ResultPrinter
+from detection.color_thresholding import ColorSegmenter
+from geometry.geom import SpatialGeometryTransformer, StereoEllipseGeometryExtractor
+from pipeline.pipeline import Pipeline
+from stereo.split import StereoSplitter
+from stereo.stereo_pipeline import *
+from visualization.frame_viewer import FrameViewer
 
 
 def main():
@@ -34,26 +35,39 @@ def main():
 
     geometry_extractor = StereoEllipseGeometryExtractor()
 
-    p_right_matrix = np.array([[2.8, 0, 0, -120.0],
-                               [0, 2.8, 0, 0],
-                               [0, 0, 1, 0]])
-
-    p_left_matrix = np.array([[2.8, 0, 0, 0],
-                              [0, 2.8, 0, 0],
-                              [0, 0, 1, 0]])
+    # Projection matrices for the cameras
+    # [fx, 0, cx, Tx]
+    # [0, fy, cy, Ty]
+    # [0,  0,  1,  0]
+    # where Tx = -fx * B, B = baseline
+    #       Ty = 0
+    #       fx = focal length w.r.t. x
+    #       fy = focal length w.r.t. y
+    #       cx, cy = principal points; [cx] = [cy] = ??
+    # TODO: Add cx and cy!!
+    # fmt: off
+    p_right_matrix = np.array([[2.8,   0, 0, -120.0],
+                               [  0, 2.8, 0,      0],
+                               [  0,   0, 1,      0]])
+    p_left_matrix = np.array([[2.8,   0, 0, 0],
+                              [  0, 2.8, 0, 0],
+                              [  0,   0, 1, 0]])
+    # fmt: on
 
     geometry_transformer = SpatialGeometryTransformer(p_left_matrix, p_right_matrix)
 
-    client = redis.Redis(host='localhost', port=6379)
+    client = redis.Redis(host="localhost", port=6379)
 
-    pipe1 = Pipeline.builder() \
-        .add(stereo_cam_sup) \
-        .add(frame_splitter) \
-        .add(stereo_segmenter) \
-        .add(geometry_extractor) \
-        .add(geometry_transformer) \
-        .add(RedisBroadcast(client, "Ball")) \
+    pipe1 = (
+        Pipeline.builder()
+        .add(stereo_cam_sup)
+        .add(frame_splitter)
+        .add(stereo_segmenter)
+        .add(geometry_extractor)
+        .add(geometry_transformer)
+        .add(RedisBroadcast(client, "Ball"))
         .build()
+    )
 
     try:
         pipe1.run()
@@ -64,5 +78,5 @@ def main():
         pipe1.stop()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

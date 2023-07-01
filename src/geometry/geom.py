@@ -80,6 +80,9 @@ class SpatialGeometryTransformer(Mapper):
         return np.append(point, 1)
 
     def find_closest_alpha(self, left_vec, right_vec) -> Optional[np.ndarray]:
+        """Find both alpha values that minimize the distance between the two rays
+        There is porbably a closed form solution to this..."""
+
         def objective(alpha):
             assert left_vec.shape == (
                 4,
@@ -96,23 +99,34 @@ class SpatialGeometryTransformer(Mapper):
             return result.x
 
     def triangulate(self, left: Circle, right: Circle) -> Optional[Sphere]:
+        # use the same v coordinate for both points
+        mean_v = (left.position[1] + right.position[1]) / 2
+        left.position[1] = mean_v
+        right.position[1] = mean_v
+        mean_radius = (
+            left.radius + right.radius
+        ) / 2  # the radius should be scaled based on the distance the distance towards the camera
+
         left_homogeneous_q = self.homogenize(left.position).T
         right_homogeneous_q = self.homogenize(right.position).T
 
+        # together with variable alphas these describe ray equations
         left_vect = self.__left_inverse @ left_homogeneous_q
         right_vect = self.__right_inverse @ right_homogeneous_q
 
+        # find the point that is closest to the intersection of the two rays
         alpha = self.find_closest_alpha(left_vect, right_vect)
         if alpha is not None:
             self.alpha = alpha
 
-        world_point = self.tau_world + np.multiply(
+        # calculate the world points, use the mean and de-homogenize
+        world_point_h = self.tau_world + np.multiply(
             self.alpha.reshape(-1, 1), np.vstack((left_vect, right_vect))
         )
+        world_point = np.mean(world_point_h[:, :3] / world_point_h[:, 3], axis=0)
 
-        position = np.mean(world_point[:, :3] / world_point[:, 3], axis=0)
         return Sphere(
-            position, left.radius
+            world_point, mean_radius
         )  # or right.radius depending on how you handle radius in 3D.
 
     def map(self, obj):
