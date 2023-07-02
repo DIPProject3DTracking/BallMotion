@@ -15,7 +15,7 @@ from visualization.frame_viewer import FrameViewer
 
 
 def main():
-    stereo_cam_sup = FrameSupplier(0)
+    stereo_cam_sup = FrameSupplier(0, resolution=(1280 * 2, 720))
 
     frame_splitter = StereoSplitter()
 
@@ -46,12 +46,12 @@ def main():
     #       cx, cy = principal points; [cx] = [cy] = ??
     # TODO: Add cx and cy!!
     # fmt: off
-    p_right_matrix = np.array([[2.8,   0, 0, -120.0],
-                               [  0, 2.8, 0,      0],
-                               [  0,   0, 1,      0]])
-    p_left_matrix = np.array([[2.8,   0, 0, 0],
-                              [  0, 2.8, 0, 0],
-                              [  0,   0, 1, 0]])
+    p_right_matrix = np.array([[2.8, 0, 0, -120.0],
+                               [0, 2.8, 0, 0],
+                               [0, 0, 1, 0]])
+    p_left_matrix = np.array([[2.8, 0, 0, 0],
+                              [0, 2.8, 0, 0],
+                              [0, 0, 1, 0]])
     # fmt: on
 
     geometry_transformer = SpatialGeometryTransformer(p_left_matrix, p_right_matrix)
@@ -65,7 +65,8 @@ def main():
         .add(stereo_segmenter)
         .add(geometry_extractor)
         .add(geometry_transformer)
-        .add(RedisBroadcast(client, "Ball"))
+        .add(ResultPrinter())
+        # .add(RedisBroadcast(client, "Ball"))
         .build()
     )
 

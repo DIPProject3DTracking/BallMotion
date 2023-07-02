@@ -18,6 +18,9 @@ class Circle(Geom2D):
         super().__init__(position)
         self.radius = radius
 
+    def depixelize(self, pixel_size: float):
+        return Circle(self.position * pixel_size, self.radius * pixel_size)
+
 
 class Geom3D(ABC):
     def __init__(self, position: np.ndarray):
@@ -101,30 +104,37 @@ class SpatialGeometryTransformer(Mapper):
     def triangulate(self, left: Circle, right: Circle) -> Optional[Sphere]:
         # use the same v coordinate for both points
         mean_v = (left.position[1] + right.position[1]) / 2
+
         left.position[1] = mean_v
         right.position[1] = mean_v
-        mean_radius = (
-            left.radius + right.radius
-        ) / 2  # the radius should be scaled based on the distance the distance towards the camera
 
+        mean_radius = (
+                              left.radius + right.radius
+                      ) / 2  # the radius should be scaled based on the distance the distance towards the camera
+
+        print("B")
         left_homogeneous_q = self.homogenize(left.position).T
         right_homogeneous_q = self.homogenize(right.position).T
 
+        print("C")
         # together with variable alphas these describe ray equations
         left_vect = self.__left_inverse @ left_homogeneous_q
         right_vect = self.__right_inverse @ right_homogeneous_q
 
+        print("D")
         # find the point that is closest to the intersection of the two rays
         alpha = self.find_closest_alpha(left_vect, right_vect)
         if alpha is not None:
             self.alpha = alpha
 
+        print("E")
         # calculate the world points, use the mean and de-homogenize
         world_point_h = self.tau_world + np.multiply(
             self.alpha.reshape(-1, 1), np.vstack((left_vect, right_vect))
         )
         world_point = np.mean(world_point_h[:, :3] / world_point_h[:, 3], axis=0)
 
+        print("F")
         return Sphere(
             world_point, mean_radius
         )  # or right.radius depending on how you handle radius in 3D.
