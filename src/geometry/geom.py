@@ -94,7 +94,9 @@ class SpatialGeometryTransformer(Mapper):
             #     4,
             # ), f"right_vec.shape: {(alpha[1] * right_vec).shape}"
 
-            points_on_rays = self.tau_world + np.multiply(alpha.reshape((-1, 1)), ray_direction)
+            points_on_rays = self.tau_world + np.multiply(
+                alpha.reshape((-1, 1)), ray_direction
+            )
             return np.linalg.norm(points_on_rays[0, :3] - points_on_rays[1, :3])
 
         result = minimize(objective, self.alpha, method="L-BFGS-B")
@@ -109,8 +111,8 @@ class SpatialGeometryTransformer(Mapper):
         right.position[1] = mean_v
 
         mean_radius = (
-                              left.radius + right.radius
-                      ) / 2  # the radius should be scaled based on the distance the distance towards the camera
+            left.radius + right.radius
+        ) / 2  # the radius should be scaled based on the distance the distance towards the camera
 
         left_homogeneous_q = self.homogenize(left.position).T
         right_homogeneous_q = self.homogenize(right.position).T
@@ -126,7 +128,9 @@ class SpatialGeometryTransformer(Mapper):
             self.alpha = alpha
 
         # calculate the world points, use the mean and de-homogenize
-        world_points_h = self.tau_world + np.multiply(self.alpha.reshape(-1, 1), ray_directions)
+        world_points_h = self.tau_world + np.multiply(
+            self.alpha.reshape(-1, 1), ray_directions
+        )
         # world_points_h = np.divide(world_points_h[:, :3], world_points_h[:, 3].reshape((-1, 1)))
         world_points_h = np.divide(world_points_h[:, :3], 1)
         world_point = np.mean(world_points_h, axis=0)

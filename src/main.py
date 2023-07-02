@@ -7,8 +7,7 @@ from broadcast.redis_broadcast import RedisBroadcast
 from capture.frame_supplier import FrameSupplier
 from debug.debug_cam_pipeline import ResultPrinter
 from detection.color_thresholding import ColorSegmenter
-from geometry.geom import (SpatialGeometryTransformer,
-                           StereoEllipseGeometryExtractor)
+from geometry.geom import SpatialGeometryTransformer, StereoEllipseGeometryExtractor
 from pipeline.pipeline import Pipeline
 from stereo.split import StereoSplitter
 from stereo.stereo_pipeline import *
@@ -46,7 +45,6 @@ def main():
     #       (cx, cy) = principal point, [cx] = [cy] = px
     # Resolution: 1280x720: size(px) =  0.004mm, focal length = 700px
     # fmt: off
-
     p_right_matrix = np.array([[700, 0, 640, -120.0],
                                [0, 700, 360, 0],
                                [0, 0, 1, 0]])
