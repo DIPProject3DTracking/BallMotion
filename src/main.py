@@ -7,7 +7,8 @@ from broadcast.redis_broadcast import RedisBroadcast
 from capture.frame_supplier import FrameSupplier
 from debug.debug_cam_pipeline import ResultPrinter
 from detection.color_thresholding import ColorSegmenter
-from geometry.geom import SpatialGeometryTransformer, StereoEllipseGeometryExtractor
+from geometry.geom import (SpatialGeometryTransformer,
+                           StereoEllipseGeometryExtractor)
 from pipeline.pipeline import Pipeline
 from stereo.split import StereoSplitter
 from stereo.stereo_pipeline import *
@@ -39,19 +40,18 @@ def main():
     # [fx, 0, cx, Tx]
     # [0, fy, cy, Ty]
     # [0,  0,  1,  0]
-    # where Tx = -fx * B, B = baseline
+    # where Tx = -fx * B, B = baseline, [Tx] = mm
     #       Ty = 0
-    #       fx = focal length w.r.t. x
-    #       fy = focal length w.r.t. y
-    #       cx, cy = principal points; [cx] = [cy] = ??
-    # TODO: Add cx and cy!!
+    #       (fx, fy) = focal length, [fx] = [fy] = px
+    #       (cx, cy) = principal point, [cx] = [cy] = px
+    # Resolution: 1280x720: size(px) =  0.004mm, focal length = 700px
     # fmt: off
-    p_right_matrix = np.array([[2.8,   0, 0, -120.0],
-                               [  0, 2.8, 0,      0],
-                               [  0,   0, 1,      0]])
-    p_left_matrix = np.array([[2.8,   0, 0, 0],
-                              [  0, 2.8, 0, 0],
-                              [  0,   0, 1, 0]])
+    p_right_matrix = np.array([[700,   0, 640, -120.0],
+                               [  0, 700, 360,      0],
+                               [  0,   0,   1,      0]])
+    p_left_matrix = np.array([[700,   0, 640, 0],
+                              [  0, 700, 360, 0],
+                              [  0,   0,   1, 0]])
     # fmt: on
 
     geometry_transformer = SpatialGeometryTransformer(p_left_matrix, p_right_matrix)
