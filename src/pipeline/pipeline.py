@@ -123,6 +123,7 @@ class PipelineBuilder:
 
 class PipelineStage:
     def __init__(self, component: PipelineComponent, use_simple_threading=False):
+        use_simple_threading = True
         self._leadingConnector = None
         self._trailingConnector = None
         self.component = component

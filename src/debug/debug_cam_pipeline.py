@@ -31,7 +31,7 @@ class ResultPrinter(Consumer):
         super().__init__()
 
     def consume(self, obj):
-        print(type(obj))
+        print(obj)
 
 
 def main():
