@@ -79,20 +79,19 @@ class SpatialGeometryTransformer(Mapper):
     def homogenize(self, point):
         return np.append(point, 1)
 
-    def find_closest_alpha(self, left_vec, right_vec) -> Optional[np.ndarray]:
+    def find_closest_alpha(self, ray_direction) -> Optional[np.ndarray]:
         """Find both alpha values that minimize the distance between the two rays
         There is porbably a closed form solution to this..."""
 
         def objective(alpha):
-            assert left_vec.shape == (
-                4,
-            ), f"left_vec.shape = {(alpha[0] * left_vec).shape}"
-            assert right_vec.shape == (
-                4,
-            ), f"right_vec.shape: {(alpha[1] * right_vec).shape}"
-            left_p = np.array([0, 0, 0, 0]) + alpha[0] * left_vec
-            right_p = np.array([120.0, 0, 0, 0]) + alpha[1] * right_vec
-            return np.linalg.norm(left_p - right_p)
+            # assert left_vec.shape == (
+            #     4,
+            # ), f"left_vec.shape = {(alpha[0] * left_vec).shape}"
+            # assert right_vec.shape == (
+            #     4,
+            # ), f"right_vec.shape: {(alpha[1] * right_vec).shape}"
+            points_on_rays = self.tau_world + np.multiply(alpha, ray_direction)
+            return np.linalg.norm(points_on_rays[0, :3] - points_on_rays[1, :3])
 
         result = minimize(objective, self.alpha, method="L-BFGS-B")
         if result.success:
@@ -113,15 +112,16 @@ class SpatialGeometryTransformer(Mapper):
         # together with variable alphas these describe ray equations
         left_vect = self.__left_inverse @ left_homogeneous_q
         right_vect = self.__right_inverse @ right_homogeneous_q
+        ray_directions = np.vstack((left_vect, right_vect))
 
         # find the point that is closest to the intersection of the two rays
-        alpha = self.find_closest_alpha(left_vect, right_vect)
+        alpha = self.find_closest_alpha(ray_directions)
         if alpha is not None:
             self.alpha = alpha
 
         # calculate the world points, use the mean and de-homogenize
         world_point_h = self.tau_world + np.multiply(
-            self.alpha.reshape(-1, 1), np.vstack((left_vect, right_vect))
+            self.alpha.reshape(-1, 1), ray_directions
         )
         world_point = np.mean(world_point_h[:, :3] / world_point_h[:, 3], axis=0)
 
